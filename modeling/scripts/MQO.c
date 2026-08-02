@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <time.h> 
 #include <locale.h>
-
+#include <string.h>> 
+#include <math.h>
 #define COLUNAS 6
 #define LINHAS 171
 
@@ -14,7 +15,7 @@ void Inversa(double matriz[LINHAS][COLUNAS], double matrizDestino[LINHAS][COLUNA
 void main(){
     setlocale(LC_NUMERIC, "C");
 
-    FILE *entrada, *saida, *vetorResposta; 
+    FILE *entrada, *saida_coef, *vetorResposta, *nomes_features; 
     entrada = fopen("data_modelagem.txt", "rt"); 
     if (entrada == NULL) {
     perror("Erro ao abrir o arquivo");
@@ -152,8 +153,77 @@ void main(){
             printf("%lf", Xty[i]);
             printf("\n");
         }
-// printando coeficientes 
+    // printando coeficientes 
+    saida_coef = fopen("resultados.txt", "w+"); 
+    // pegando nomes das colunas 
+    nomes_features = fopen("nome_variaveis.txt", "rt");
+    char features[50];
+    for(i=0; i<COLUNAS; i++){
+        fscanf(nomes_features, "%s", features);
+        fprintf(saida_coef, "%s: %lf \n", features, x[i]);
+    }
 
+    // soma dos erros 
+    double prev[LINHAS], erro[LINHAS]; 
+    for(i=0; i<LINHAS; i++){
+        prev[i] = 0;
+        for(j=0; j<COLUNAS; j++){
+            prev[i] += Matriz[i][j] * x[j];
+
+        }
+    }
+    printf("\n");
+    printf("erros:");
+    // calculando termo de erro 
+    for(i=0; i<LINHAS; i++){
+        erro[i] = 0;
+        erro[i] += vetor[i] - prev[i];
+        printf("%lf", erro[i]);
+        printf("\n");
+    }
+    // soma dos erros 
+    double somaErros; 
+    for(i=0; i<LINHAS; i++){
+        somaErros += erro[i];
+    }
+    
+    printf("\n");
+    fprintf(saida_coef, "\nSOMA DOS ERROS: %lf\n", somaErros);
+
+    double mediaReal=0; 
+    for(i=0; i<LINHAS; i++){
+        mediaReal += vetor[i];
+
+    }
+    mediaReal = mediaReal/LINHAS;
+    printf("\n");
+    printf("MÉDIA VALORES REAIS: %lf", mediaReal);
+    printf("\n");
+
+    double SomaQuadrados=0; 
+    for(i=0; i<LINHAS; i++){
+        SomaQuadrados += pow(vetor[i] - mediaReal, 2);
+    }
+    printf("\n");
+    printf("SOMA DOS QUADRADOS: %lf", SomaQuadrados);
+    printf("\n");
+
+    double SomaQuadradosResid=0;
+    for(i=0; i<LINHAS; i++){
+        SomaQuadradosResid += pow(erro[i], 2);
+    }
+
+    printf("\n");
+    printf("SOMA DOS QUADRADOS RESIDUAIS: %lf", SomaQuadradosResid);
+    printf("\n");
+
+    // calculo r2
+    double r2=0; 
+    r2 = 1-(SomaQuadradosResid/SomaQuadrados);
+    printf("\n");
+    printf("R²: %lf", r2);
+    printf("\n");
+    fprintf(saida_coef, "R2: %lf", r2);
 }//fim da main()
     
 
@@ -169,7 +239,7 @@ void Transpose(double matriz[LINHAS][COLUNAS], double matriz_destino[COLUNAS][LI
     }
 }
 
-// funçao multiplicadora 
+// funçao multiplicadora de matriz
 void MultiplicadorMatriz(double matriz1[COLUNAS][LINHAS],double matriz2[LINHAS][COLUNAS],double matrizDestino[COLUNAS][COLUNAS]){
     int i,j,k;
     for(i=0;i<COLUNAS;i++){
@@ -181,8 +251,7 @@ void MultiplicadorMatriz(double matriz1[COLUNAS][LINHAS],double matriz2[LINHAS][
         }
     }
 }
-
-
+// multiplicaçao de vetor 
 void MultiplicadorVetor(double vetor[LINHAS], double matriz[COLUNAS][LINHAS], double destino[COLUNAS]){
     int i, j; 
     for(j=0;j<COLUNAS;j++){
