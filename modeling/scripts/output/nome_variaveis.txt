@@ -1,6 +1,6 @@
 const
 Confiança_consumidor
 Desemprego
-Juros_nao_rotativos_PF
 SELIC
 IBC-Br
+PANDEMIA

@@ -1,9 +1,9 @@
-const: 11.918194 
-Confiança_consumidor: 0.020955 
-Desemprego: -0.145176 
-Juros_nao_rotativos_PF: 0.229486 
-SELIC: 0.584844 
-IBC-Br: -0.099790 
+const: 11.385093 
+Confiança_consumidor: 0.020376 
+Desemprego: -0.124835 
+SELIC: 0.678294 
+IBC-Br: -0.091761 
+PANDEMIA: -0.185828 
 
 SOMA DOS ERROS: -0.000000
-R2: 0.746780
+R2: 0.761057
