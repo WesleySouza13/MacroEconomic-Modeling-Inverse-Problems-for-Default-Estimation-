@@ -5,7 +5,7 @@
 #include <string.h>> 
 #include <math.h>
 #define COLUNAS 6
-#define LINHAS 171
+#define LINHAS 159
 
 // esboço das funçoes
 void Transpose(double matriz[LINHAS][COLUNAS], double matriz_destino[COLUNAS][LINHAS]);
@@ -123,7 +123,7 @@ void main(){
                 }
         }
     }
-    // Substituição regressiva
+    // substituiçao regressiva
     for (i = COLUNAS - 1; i >= 0; i--){
         x[i] = A[i][COLUNAS];
         for (j = i + 1; j < COLUNAS; j++){
@@ -224,6 +224,17 @@ void main(){
     printf("R²: %lf", r2);
     printf("\n");
     fprintf(saida_coef, "R2: %lf", r2);
+
+    double MAE; 
+    
+    // calculo MAE 
+    for(i=0; i<LINHAS; i++){
+        MAE += (vetor[i]-prev[i]);
+    }
+    MAE = MAE/LINHAS; 
+    printf("\n");
+    printf("MAE: %lf", MAE);
+    printf("\n");
 }//fim da main()
     
 
