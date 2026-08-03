@@ -235,6 +235,16 @@ void main(){
     printf("\n");
     printf("MAE: %lf", MAE);
     printf("\n");
+
+    // calculo do sigma 
+    double sigma; 
+
+    for(i=0; i<LINHAS; i++){
+        sigma += (SomaQuadradosResid)/LINHAS-COLUNAS; 
+    }
+    printf("\n");
+    printf("SIGMA: %lf", sigma);
+    printf("\n");
 }//fim da main()
     
 
