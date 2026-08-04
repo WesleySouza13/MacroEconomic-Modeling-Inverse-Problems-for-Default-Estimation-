@@ -4,8 +4,8 @@
 #include <locale.h>
 #include <string.h>> 
 #include <math.h>
-#define COLUNAS 9
-#define LINHAS 164
+#define COLUNAS 7
+#define LINHAS 165
 
 // esboço das funçoes
 void Transpose(double matriz[LINHAS][COLUNAS], double matriz_destino[COLUNAS][LINHAS]);

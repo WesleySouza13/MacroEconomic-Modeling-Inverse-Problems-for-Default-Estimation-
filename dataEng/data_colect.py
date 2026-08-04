@@ -1,7 +1,7 @@
 from request_data import Request
 import pandas as pd 
 import os 
-lista_de_codes = [4393, 21084, 24369, 27640, 4390, 24364]
+lista_de_codes = [4393, 21084, 24369, 27640, 4390, 24364, 433, 29037]
 datas = []
 for i in lista_de_codes:
     data_path = os.path.join('data', 'sgs_data', f'{i}.csv')

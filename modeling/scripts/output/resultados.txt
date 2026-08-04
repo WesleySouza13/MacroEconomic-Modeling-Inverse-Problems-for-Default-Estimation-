@@ -1,12 +1,10 @@
-const: 3.769520 
-Confiança_consumidor: 0.021501 
-Desemprego: 0.345787 
-Juros_nao_rotativos_PF: -0.127839 
-SELIC: 0.050921 
-IBC-Br: -0.029195 
-SELIC_lag1: 0.857456 
-DESEMPREGO_lag3: -0.391409 
-Confiança_consumidor_lag2: 0.004835 
+const: 8.025793 
+Confiança_consumidor: 1.721968 
+Desemprego: -0.149354 
+SELIC: 0.240921 
+IBC-Br: 2.644685 
+IPCA: -0.240376 
+Endividamento_das_familias: -0.063539 
 
-SOMA DOS ERROS: 0.000000
-R2: 0.748174
+SOMA DOS ERROS: -0.000000
+R2: 0.598867
