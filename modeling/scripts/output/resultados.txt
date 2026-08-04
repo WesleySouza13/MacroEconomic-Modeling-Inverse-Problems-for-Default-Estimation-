@@ -6,5 +6,13 @@ IBC-Br: 2.644685
 IPCA: -0.240376 
 Endividamento_das_familias: -0.063539 
 
-SOMA DOS ERROS: -0.000000
+====== Métricas =======
+SOMA DOS ERROS: 49.179482
+
 R2: 0.598867
+
+σ^2: 0.144224
+
+MAE: 0.298057
+F statistic: 33.484478
+coef. subestimacao: 0.515152

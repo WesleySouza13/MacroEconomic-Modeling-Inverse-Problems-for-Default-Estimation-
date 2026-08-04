@@ -178,7 +178,8 @@ void main(){
     for(i=0; i<LINHAS; i++){
         erro[i] = 0;
         erro[i] += vetor[i] - prev[i];
-        printf("%lf", erro[i]);
+        printf("%lf", fabs(erro[i]));
+        erro[i] = fabs(erro[i]);
         printf("\n");
     }
     // soma dos erros 
@@ -186,7 +187,7 @@ void main(){
     for(i=0; i<LINHAS; i++){
         somaErros += erro[i];
     }
-    
+    fprintf(saida_coef, "\n====== Métricas =======");
     printf("\n");
     fprintf(saida_coef, "\nSOMA DOS ERROS: %lf\n", somaErros);
 
@@ -223,28 +224,59 @@ void main(){
     printf("\n");
     printf("R²: %lf", r2);
     printf("\n");
-    fprintf(saida_coef, "R2: %lf", r2);
+    fprintf(saida_coef, "\nR2: %lf\n", r2);
 
     double MAE; 
     
     // calculo MAE 
     for(i=0; i<LINHAS; i++){
-        MAE += (vetor[i]-prev[i]);
+        MAE += fabs(vetor[i]-prev[i]);
     }
-    MAE = MAE/LINHAS; 
+    MAE /=LINHAS; 
     printf("\n");
-    printf("MAE: %lf", MAE);
+    printf("MAE: \n%lf\n", MAE);
     printf("\n");
 
     // calculo do sigma 
     double sigma; 
 
+    sigma = SomaQuadradosResid/(LINHAS - COLUNAS);
+    printf("\n");
+    printf("SIGMA: \n%lf\n", sigma);
+    fprintf(saida_coef, "\nσ^2: %lf\n", sigma);
+    printf("\n");
+
+    fprintf(saida_coef, "\nMAE: %lf\n", MAE);
+    
+    // calculo de F 
+    double SQM=0, QMM=0, SQE=0, QME=0; 
     for(i=0; i<LINHAS; i++){
-        sigma += (SomaQuadradosResid)/LINHAS-COLUNAS; 
+        SQM += pow(prev[i]-mediaReal, 2);
+    }
+    QMM = SQM/COLUNAS; 
+    
+    for(i=0; i<LINHAS; i++){
+        SQE += pow(vetor[i]-prev[i],2);
+    }
+    QME = SQE/(LINHAS - COLUNAS -1);
+    double F=0; 
+    F = QMM/QME; 
+    printf("\n");
+    printf("F static: %lf", F);
+    fprintf(saida_coef, "F statistic: %lf\n", F);
+    
+    // calculo de coeficiente de subestimaçao
+    double CoefSubestimacao=0, T=0; 
+    for(i=0; i<LINHAS; i++){
+        if(prev[i]>mediaReal){
+            T++;
+        }
+        CoefSubestimacao = T/LINHAS; 
     }
     printf("\n");
-    printf("SIGMA: %lf", sigma);
-    printf("\n");
+    printf("Coefiente de subestimaçao: %lf", CoefSubestimacao);
+    fprintf(saida_coef, "coef. subestimacao: %lf\n", CoefSubestimacao);
+
 }//fim da main()
     
 
