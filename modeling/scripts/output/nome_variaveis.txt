@@ -1,7 +1,6 @@
 const
-Confiança_consumidor
-Desemprego
+DeltaDesemprego
 SELIC
-IBC-Br
+DeltaIBC-Br
 IPCA
-Endividamento_das_familias
+DeltaEndividamento_das_familias

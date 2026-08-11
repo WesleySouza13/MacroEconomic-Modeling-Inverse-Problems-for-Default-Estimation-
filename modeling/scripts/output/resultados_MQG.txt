@@ -1,0 +1,7 @@
+const: 0.023419
+DeltaDesemprego: -0.157292
+SELIC: -0.013644
+DeltaIBC-Br: -0.299205
+IPCA: -0.026224
+DeltaEndividamento_das_familias: 0.470914
+ 

@@ -1,18 +1,32 @@
-const: 8.025793 
-Confiança_consumidor: 1.721968 
-Desemprego: -0.149354 
-SELIC: 0.240921 
-IBC-Br: 2.644685 
-IPCA: -0.240376 
-Endividamento_das_familias: -0.063539 
+const: -0.017326 
+DeltaDesemprego: -0.255852 
+SELIC: 0.027681 
+DeltaIBC-Br: -0.587605 
+IPCA: -0.011519 
+DeltaEndividamento_das_familias: 0.753276 
 
 ====== Métricas =======
-SOMA DOS ERROS: 49.179482
+SOMA DOS ERROS: 3.159240
 
-R2: 0.598867
+R2: 0.222023
 
-σ^2: 0.144224
+σ^2: 0.000599
 
-MAE: 0.298057
-F statistic: 33.484478
-coef. subestimacao: 0.515152
+MAE: 0.019147
+F statistic: 7.515135
+coef. subestimacao: 0.496970
+ 
+rho:0.079823, lag:1
+rho:-0.080528, lag:2
+rho:-0.089955, lag:3
+rho:-0.133945, lag:4
+rho:-0.050265, lag:5
+rho:0.182668, lag:6
+rho:0.020255, lag:7
+rho:-0.005539, lag:8
+rho:-0.141469, lag:9
+rho:-0.158284, lag:10
+rho:-0.050269, lag:11
+rho:0.230203, lag:12
+
+Ljing-Box: 30.893690

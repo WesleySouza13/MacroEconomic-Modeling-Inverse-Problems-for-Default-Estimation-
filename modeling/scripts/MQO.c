@@ -2,16 +2,29 @@
 #include <stdio.h>
 #include <time.h> 
 #include <locale.h>
-#include <string.h>> 
+#include <string.h>
 #include <math.h>
-#define COLUNAS 7
+#define COLUNAS 6
 #define LINHAS 165
 
 // esboço das funçoes
 void Transpose(double matriz[LINHAS][COLUNAS], double matriz_destino[COLUNAS][LINHAS]);
 void MultiplicadorMatriz(double matriz1[COLUNAS][LINHAS],double matriz2[LINHAS][COLUNAS],double matrizDestino[COLUNAS][COLUNAS]);
 void MultiplicadorVetor(double vetor[LINHAS], double matriz[COLUNAS][LINHAS], double destino[COLUNAS]);
-void Inversa(double matriz[LINHAS][COLUNAS], double matrizDestino[LINHAS][COLUNAS]);
+double Var(double resid[LINHAS], double media);
+double ACF(double resid[LINHAS], double mediaResid, int lag);
+double LjingBox(double phi, int lag); 
+void CalculoOmega(double matrizOmega[LINHAS][LINHAS], double rho, double destino[LINHAS][LINHAS]);
+void InverteOmega(double rho,double OmegaInv[LINHAS][LINHAS]);
+void MultiplicadorXOMega(double Xt[COLUNAS][LINHAS], double OmegaInv[LINHAS][LINHAS], double destino[COLUNAS][LINHAS]);
+void InvertePt1(double Omega[COLUNAS][COLUNAS], double OmegaInv[COLUNAS][COLUNAS]);
+void MultiplicadorMatrizVetor(double matriz1[COLUNAS][LINHAS],double vetor[LINHAS],double resultado[COLUNAS]);
+void MultiplicadorVetorMatrizQuadrada(double matriz[COLUNAS][COLUNAS], double vetor[COLUNAS], double resultado[COLUNAS]);
+void MultplicadorMatrizQuadrada(double matriz1[COLUNAS][COLUNAS], double matriz2[COLUNAS][COLUNAS], double resuldado[COLUNAS][COLUNAS]);
+
+// funçao para calculo direto de MQG
+void MQGFunc(double rho_MQO, double Omega[LINHAS][LINHAS], double X[LINHAS][COLUNAS], double vetor_y[LINHAS], int maxIter, double tol); 
+
 void main(){
     setlocale(LC_NUMERIC, "C");
 
@@ -182,6 +195,7 @@ void main(){
         erro[i] = fabs(erro[i]);
         printf("\n");
     }
+    
     // soma dos erros 
     double somaErros; 
     for(i=0; i<LINHAS; i++){
@@ -275,9 +289,158 @@ void main(){
     }
     printf("\n");
     printf("Coefiente de subestimaçao: %lf", CoefSubestimacao);
-    fprintf(saida_coef, "coef. subestimacao: %lf\n", CoefSubestimacao);
+    fprintf(saida_coef, "coef. subestimacao: %lf\n \n", CoefSubestimacao);
 
-}//fim da main()
+
+    // calculo de variancia 
+    double var=0; 
+    var = Var(erro, mediaReal);
+
+    printf("\n");
+    printf("Var: %lf", var);
+    
+    // calculo de phi para acf 
+    double phi, mediaResid=0;
+    for(i=0; i<LINHAS; i++){
+        mediaResid +=erro[i]; 
+    }
+    mediaResid /=LINHAS; 
+    printf("\n");
+    printf("Média Residuos: %lf", mediaResid);
+    double acf=0; 
+    acf = ACF(erro, mediaResid, 12); 
+    printf("\n");
+    printf("ACF para lag12: %lf", acf); 
+    
+    // calculando varios rho para acf
+    double rho[12];
+    for(i=0; i<12; i++){
+        rho[i] = ACF(erro, mediaResid, i+1);
+        printf("rho: %lf, lag:%d",rho[i],i+1);
+        printf("\n");
+        fprintf(saida_coef, "rho:%lf, lag:%d\n", rho[i], i+1); 
+        
+    }
+    // calculando ljingbox
+    double pt1=0, pt2=0, Q=0;
+    double k_=0; 
+    pt1=LINHAS*(LINHAS+2);  
+    for(i=0; i<12; i++){
+        k_ = i+1;
+        pt2 += pow(rho[i],2)/(LINHAS-k_); 
+
+    }
+    Q = pt1*pt2;
+    printf("\n");
+    printf("ljung-box: %lf", Q);
+    fprintf(saida_coef, "\nLjing-Box: %lf\n", Q);
+    
+    /// montando GLS para correçao de autocorrelaçao e heterocedasticidade do modelo
+    double rho_new;
+    rho_new = ACF(erro, mediaResid, 1);
+    // calculo de omega 
+    double Omega[LINHAS][LINHAS],destinoOmega[LINHAS][LINHAS]; 
+
+    // preenchendo matrizes com zeros 
+    for(i=0; i<LINHAS; i++){
+        for(j=0; j<LINHAS; j++){
+            Omega[i][j] =0;
+            destinoOmega[i][j] = 0; 
+        }
+    }
+    CalculoOmega(Omega, 0.792944736, destinoOmega);
+    printf("\n");
+
+    // calculando inversa do Omega 
+    double OmegaInv[LINHAS][LINHAS]; 
+    for(i=0; i<LINHAS; i++){
+        for(j=0; j<LINHAS; j++){
+            OmegaInv[i][j] = 0; 
+        }
+    }
+    InverteOmega(0.792944736, OmegaInv); 
+
+    // calculando Xt * OmegaINv 
+    double XtOmegaInv[COLUNAS][LINHAS]; 
+    MultiplicadorXOMega(Xt, OmegaInv, XtOmegaInv);
+    
+    //calculando XtOmegaInvX
+    double XtOmegaInvX[COLUNAS][COLUNAS];
+    MultiplicadorMatriz(XtOmegaInv, Matriz,XtOmegaInvX);
+    for(i=0; i<COLUNAS; i++){
+        for(j=0; j<COLUNAS; j++){
+            printf("%lf", XtOmegaInvX[i][j]); 
+        }printf("\n");
+    }
+    // segunda parte (XtOmegaInvY)
+    double XtOmegaInvY[COLUNAS]; 
+    MultiplicadorMatrizVetor(XtOmegaInv, vetor, XtOmegaInvY); 
+    printf("\n");
+    for(i=0; i<COLUNAS; i++){
+        printf("%lf", XtOmegaInvY[i]);
+        printf("\n");
+    }
+    // invertendo a primeira parte
+    double InvPt1[COLUNAS][COLUNAS]; 
+    InvertePt1(XtOmegaInvX, InvPt1);
+    printf("\n");
+    for(i=0; i<COLUNAS; i++){
+        for(j=0; j<COLUNAS; j++){
+            printf("%lf", InvPt1[i][j]);
+        }
+    }
+    printf("\n");
+    double betas[COLUNAS]; 
+    MultiplicadorVetorMatrizQuadrada(InvPt1, XtOmegaInvY, betas);
+    for(i=0; i<COLUNAS; i++){
+        printf("%lf", betas[i]);
+        printf("\n");
+    }
+    // printando coeficientes no arquivo de saida
+    FILE *saida_GLS, *features_gls; 
+    saida_GLS = fopen("resultados_MQG.txt", "w"); 
+    features_gls = fopen("nome_variaveis.txt", "rt");
+
+    char gls_features[50]; 
+    for(i=0; i<COLUNAS; i++){
+        fscanf(features_gls, "%s", gls_features);
+        fprintf(saida_GLS, "%s: %lf\n", gls_features, betas[i]);
+    }
+
+    // fazendo previsoes para MQG
+    double prev_MQG[LINHAS]; 
+    for(i=0; i<LINHAS; i++){
+        prev_MQG[i]=0;
+    }
+    for(i=0; i<LINHAS; i++){
+        for(j=0; j<COLUNAS; j++){
+            prev_MQG[i] += Matriz[i][j] * betas[j]; 
+        }
+    }
+    // calculando erros para MQG 
+    double resid_MQG[LINHAS],  resid_MQG_media=0; 
+    for(i=0; i<LINHAS; i++){
+        resid_MQG[i] = vetor[i] - prev_MQG[i];
+        resid_MQG_media +=resid_MQG[i];
+    }
+    double rho_mqg=0;
+    resid_MQG_media = (resid_MQG_media/ LINHAS); 
+    rho_mqg = ACF(resid_MQG, resid_MQG_media, 1);
+    
+
+    // ----------------------------------------------
+    // otimizaçao de rho para minimizar erros
+    // ----------------------------------------------
+    double tol; 
+    tol = pow(10, -6);
+    printf("fazendo otimizaçao do rho por FGLS");
+    printf("\n");
+    MQGFunc(rho_new, Omega, Matriz, vetor, 10, tol);
+    
+
+
+}
+//fim da main()
     
 
 
@@ -313,4 +476,244 @@ void MultiplicadorVetor(double vetor[LINHAS], double matriz[COLUNAS][LINHAS], do
             destino[j] += matriz[j][i] * vetor[i];
         }
     }
+}
+double Var(double resid[LINHAS], double media){
+    double var=0;
+    int i;  
+    for(i=0; i<LINHAS; i++){
+        var +=pow(resid[i]-media,2); 
+    }
+    return (var)/(LINHAS-1); 
+}
+double ACF(double resid[LINHAS], double mediaResid, int lag){
+    int i;
+    double numerador=0, denominador=0; 
+
+    for(i=lag; i<LINHAS; i++){
+        numerador += (resid[i]-mediaResid)*(resid[i-lag]-mediaResid);
+        denominador+=pow(resid[i]-mediaResid, 2);
+
+    }
+    
+    return numerador/denominador; 
+
+}
+double LjingBox(double phi, int lag){
+    double pt1=0, pt2=0; 
+    pt1 = LINHAS*(LINHAS+2);
+    pt2 = pow(phi,2);
+    pt2 = pt2/(LINHAS-lag);
+    return pt1*pt2; 
+}
+// calculo de matriz omega 
+void CalculoOmega(double matrizOmega[LINHAS][LINHAS], double rho, double destino[LINHAS][LINHAS]){
+    int i, j;
+    double distancia;  
+    for(i=0; i<LINHAS; i++){
+        for(j=0; j<LINHAS; j++){
+            distancia = fabs(i-j);
+            matrizOmega[i][j] = pow(rho, (double)distancia); 
+            destino[i][j] = matrizOmega[i][j];
+        }
+    }
+}
+
+void InverteOmega(double rho,double OmegaInv[LINHAS][LINHAS]){
+    int i, j;
+
+    double fator = 1.0 / (1.0 - rho * rho);
+    // zera a matriz
+    for(i = 0; i < LINHAS; i++){
+        for(j = 0; j < LINHAS; j++){
+            OmegaInv[i][j] = 0.0;
+        }
+    }
+    OmegaInv[0][0] = fator;
+    OmegaInv[LINHAS-1][LINHAS-1] = fator;
+
+    // Diagonal interna
+    for(i=1; i<LINHAS-1; i++){
+        OmegaInv[i][i] =
+            fator * (1.0 + rho * rho);
+    }
+    for(i = 0; i < LINHAS-1; i++){
+        OmegaInv[i][i+1] = -fator * rho;
+        OmegaInv[i+1][i] = -fator * rho;
+    }
+}
+void MultiplicadorXOMega(double Xt[COLUNAS][LINHAS], double OmegaInv[LINHAS][LINHAS], double destino[COLUNAS][LINHAS]){
+    int i, j, k; 
+    for(i=0; i<COLUNAS; i++){
+        for(j=0; j<LINHAS; j++){
+            destino[i][j] = 0;
+            for(k=0; k<LINHAS; k++){
+                destino[i][j] +=Xt[i][k] * OmegaInv[k][j];
+            }
+        }
+    }
+}
+// funçao para inverter pt1 do GLS
+void InvertePt1(
+    double matriz[COLUNAS][COLUNAS],
+    double inversa[COLUNAS][COLUNAS])
+{
+    int i, j, k, linhaPivo;
+    double fator, maior, temp;
+    double A[COLUNAS][2 * COLUNAS];
+    // [A | I]
+    for(i = 0; i < COLUNAS; i++){
+        for(j = 0; j < COLUNAS; j++){
+            A[i][j] = matriz[i][j];
+        }
+        for(j = 0; j < COLUNAS; j++){
+            A[i][j + COLUNAS] = (i == j) ? 1.0 : 0.0;
+        }
+    }
+    // Gauss-Jordan com pivoteamento parcial
+    for(k = 0; k < COLUNAS; k++){
+        // procura maior pivô
+        linhaPivo = k;
+        maior = fabs(A[k][k]);
+        for(i = k + 1; i < COLUNAS; i++){
+            if(fabs(A[i][k]) > maior){
+                maior = fabs(A[i][k]);
+                linhaPivo = i;
+            }
+        }
+        // matriz singular ou quase singular
+        if(maior < 1e-12){
+            printf("Matriz singular ou quase singular.\n");
+            return;
+        }
+        // troca de linhas
+        if(linhaPivo != k){
+            for(j = 0; j < 2 * COLUNAS; j++){
+                temp = A[k][j];
+                A[k][j] = A[linhaPivo][j];
+                A[linhaPivo][j] = temp;
+            }
+        }
+        // normaliza pivô
+        fator = A[k][k];
+        for(j = 0; j < 2 * COLUNAS; j++){
+            A[k][j] /= fator;
+        }
+        // zera coluna
+        for(i = 0; i < COLUNAS; i++){
+            if(i != k){
+                fator = A[i][k];
+                for(j = 0; j < 2 * COLUNAS; j++){
+                    A[i][j] -= fator * A[k][j];
+                }
+            }
+        }
+    }
+    // extrai inversa
+    for(i=0; i < COLUNAS; i++){
+        for(j = 0; j < COLUNAS; j++){
+            inversa[i][j] = A[i][j + COLUNAS];
+        }
+    }
+}
+
+void MultiplicadorMatrizVetor(double matriz1[COLUNAS][LINHAS],double vetor[LINHAS],double resultado[COLUNAS]){
+    int i, k;
+    for(i = 0; i < COLUNAS; i++){
+        resultado[i] = 0;
+        for(k = 0; k < LINHAS; k++){
+            resultado[i] += matriz1[i][k] * vetor[k];
+        }
+    }
+}
+void MultiplicadorVetorMatrizQuadrada(double matriz[COLUNAS][COLUNAS], double vetor[COLUNAS], double resultado[COLUNAS]){
+    int i, j; 
+    for(i=0; i<COLUNAS; i++){
+        resultado[i] = 0; 
+        for(j=0; j<COLUNAS; j++){
+            resultado[i] += matriz[i][j] * vetor[j];
+        }
+    }
+}
+void MultplicadorMatrizQuadrada(double matriz1[COLUNAS][COLUNAS], double matriz2[COLUNAS][COLUNAS], double resuldado[COLUNAS][COLUNAS]){
+    int i, j, k; 
+    for(i=0; i<COLUNAS; i++){
+        for(j=0; j<COLUNAS; j++){
+            resuldado[i][j] =0; 
+            for(k=0; k<COLUNAS; k++){
+                resuldado[i][j] +=matriz1[i][k] *matriz2[k][j];
+            }
+        }
+    }
+}
+
+void MQGFunc(double rho_MQO, double Omega[LINHAS][LINHAS], double X[LINHAS][COLUNAS], double vetor_y[LINHAS], int maxIter, double tol){
+    int i, j, k; 
+
+    for(k=0; k< maxIter; k++){
+    // inicializaçao de omega
+    double Xt[COLUNAS][LINHAS], OmegaDestino[LINHAS][LINHAS], OmegaInv[LINHAS][LINHAS], XtOmegaInv[COLUNAS][LINHAS], XtOmegaInvX[COLUNAS][COLUNAS], pt1[COLUNAS][COLUNAS], pt2[COLUNAS], betas[COLUNAS];
+    // fazendo matriz transposta de X 
+    Transpose(X, Xt); 
+    // calculando Omega
+    CalculoOmega(Omega, rho_MQO, OmegaDestino); 
+    // inverte omega
+    InverteOmega(rho_MQO,OmegaInv);
+    // Xt * OmegaInv
+    MultiplicadorXOMega(Xt, OmegaInv,XtOmegaInv); 
+    // Xt * OmegaInv * X 
+    MultiplicadorMatriz(XtOmegaInv, X, XtOmegaInvX); 
+    // invertendo primeira parte da forma matricial 
+    InvertePt1(XtOmegaInvX, pt1); 
+
+    // ----------
+    // pt2 -> Xt * OmegaInv * Y 
+    // ---------
+    //XtOmegaInv * Y
+    MultiplicadorMatrizVetor(XtOmegaInv, vetor_y, pt2); 
+
+    // resolvendo matrizes finais 
+    // pt1 * pt2
+    MultiplicadorVetorMatrizQuadrada(pt1, pt2, betas); 
+    
+    double prev[LINHAS], resid[LINHAS], mediaResid=0, rho_new;
+    // inicializando prev e resid com 0
+    for(i=0; i<LINHAS; i++){
+        prev[i]=0; 
+        resid[i]=0; 
+    }
+    for(i=0; i<LINHAS; i++){
+        for(j=0;j<COLUNAS; j++){
+            prev[i] += X[i][j] * betas[j];
+        }
+        resid[i] = vetor_y[i] - prev[i]; 
+        mediaResid += resid[i];
+    }
+    mediaResid/=LINHAS; 
+
+    // calculando novo rho 
+    rho_new = ACF(resid, mediaResid, 1); 
+    printf("rho inicial: %lf", rho_MQO);
+    printf("\n");
+    printf("novo rho: %lf", rho_new);
+    printf("\n");
+    if(fabs(rho_MQO - rho_new) < tol){
+        printf("FGLS convergido com sucesso");
+        rho_MQO = rho_new; 
+        printf("\n");
+        printf("betas:");
+        FILE *saida, *nomes; 
+        saida = fopen("Saida_FGLS.txt", "w");
+        nomes = fopen("nome_variaveis.txt", "rt");
+        char features[50];
+        for(i=0; i<COLUNAS; i++){
+            printf("%lf", betas[i]);
+            fscanf(nomes, "%s", features);
+            fprintf(saida, "%s: %lf\n", features, betas[i]); 
+            printf("\n");
+        }
+        break;
+    }
+    rho_MQO = rho_new; 
+}
+    
 }
