@@ -13,7 +13,7 @@ void MultiplicadorMatriz(double matriz1[COLUNAS][LINHAS],double matriz2[LINHAS][
 void MultiplicadorVetor(double vetor[LINHAS], double matriz[COLUNAS][LINHAS], double destino[COLUNAS]);
 double Var(double resid[LINHAS], double media);
 double ACF(double resid[LINHAS], double mediaResid, int lag);
-double LjingBox(double phi, int lag); 
+double LjingBox(double acf[12]); 
 void CalculoOmega(double matrizOmega[LINHAS][LINHAS], double rho, double destino[LINHAS][LINHAS]);
 void InverteOmega(double rho,double OmegaInv[LINHAS][LINHAS]);
 void MultiplicadorXOMega(double Xt[COLUNAS][LINHAS], double OmegaInv[LINHAS][LINHAS], double destino[COLUNAS][LINHAS]);
@@ -21,9 +21,9 @@ void InvertePt1(double Omega[COLUNAS][COLUNAS], double OmegaInv[COLUNAS][COLUNAS
 void MultiplicadorMatrizVetor(double matriz1[COLUNAS][LINHAS],double vetor[LINHAS],double resultado[COLUNAS]);
 void MultiplicadorVetorMatrizQuadrada(double matriz[COLUNAS][COLUNAS], double vetor[COLUNAS], double resultado[COLUNAS]);
 void MultplicadorMatrizQuadrada(double matriz1[COLUNAS][COLUNAS], double matriz2[COLUNAS][COLUNAS], double resuldado[COLUNAS][COLUNAS]);
-
+double F_statistic(double prev[LINHAS], double mediaReal, double vetor[LINHAS]);
 // funçao para calculo direto de MQG
-void MQGFunc(double rho_MQO, double Omega[LINHAS][LINHAS], double X[LINHAS][COLUNAS], double vetor_y[LINHAS], int maxIter, double tol); 
+void MQGFunc(double rho_MQO, double Omega[LINHAS][LINHAS], double X[LINHAS][COLUNAS], double vetor_y[LINHAS], int maxIter, double tol, double BETAS[COLUNAS]); 
 
 void main(){
     setlocale(LC_NUMERIC, "C");
@@ -427,18 +427,62 @@ void main(){
     resid_MQG_media = (resid_MQG_media/ LINHAS); 
     rho_mqg = ACF(resid_MQG, resid_MQG_media, 1);
     
-
     // ----------------------------------------------
     // otimizaçao de rho para minimizar erros
     // ----------------------------------------------
-    double tol; 
+    double tol, BETAS_FGLS[COLUNAS]; 
+    FILE *saidaFGLS; 
+    saidaFGLS = fopen("Saida_FGLS_.txt", "w"); 
+    for(i=0; i<COLUNAS; i++){
+        BETAS_FGLS[COLUNAS] = 0;
+    }
+    printf("\n");
     tol = pow(10, -6);
     printf("fazendo otimizaçao do rho por FGLS");
     printf("\n");
-    MQGFunc(rho_new, Omega, Matriz, vetor, 10, tol);
+    MQGFunc(rho_new, Omega, Matriz, vetor, 10, tol, BETAS_FGLS);
+
+    // fazendo previsoes com FGLS
+    double prev_FGLS[LINHAS], resid_FGLS[LINHAS], mediaResidFGLS=0, mediaprevFGLS=0;  
+    for(i=0; i<LINHAS; i++){
+        for(j=0; j<COLUNAS; j++){
+            prev_FGLS[i] += Matriz[i][j] * BETAS_FGLS[j];
+            resid_FGLS[i] += vetor[i] - prev_FGLS[i]; 
+            mediaprevFGLS += prev_FGLS[i]; 
+        }
+    }
+    mediaprevFGLS /=LINHAS; // media das previsoes de FGLS
+    // calculando média de residuos FGLS 
+    for(i=0; i<LINHAS; i++){
+        mediaResidFGLS += resid_FGLS[i]; 
+    }
+    mediaResidFGLS /= LINHAS; 
+
+    // CALCULANDO LJING-BOX PARA FGLS 
+    double acfFGLS[12] ;
+    for(i = 0; i < 12; i++){
+        acfFGLS[i] = ACF(resid_FGLS, mediaResidFGLS, i + 1);
+        printf("Lag %d: %lf\n", i + 1, acfFGLS[i]);
+        
+    }
+    double ljingBox_FGLS=0;
+    ljingBox_FGLS = LjingBox(acfFGLS); 
+    FILE *FGLS_features; 
+    FGLS_features = fopen("nome_variaveis.txt", "rt"); 
+    char features_FGLS[50]; 
+    for(i=0; i<6; i++){
+        fscanf(FGLS_features, "%s", features_FGLS);
+        fprintf(saidaFGLS, "%s: %lf\n", features_FGLS, BETAS_FGLS[i]);
+    }
+    for(i=0; i<12; i++){
+        fprintf(saidaFGLS, "\nrho: %lf, lag: %d", acfFGLS[i], i+1); 
+    }
+    fprintf(saidaFGLS, "\n\n(Q) Ljing-Box: %lf", ljingBox_FGLS); 
+
+    double F_fgls=0, sub_coef_FGLS=0; 
+    F_fgls = F_statistic(prev_FGLS, mediaprevFGLS, vetor); 
+    fprintf(saidaFGLS, "\nF_statistic: %lf\n", F_fgls); 
     
-
-
 }
 //fim da main()
     
@@ -498,12 +542,12 @@ double ACF(double resid[LINHAS], double mediaResid, int lag){
     return numerador/denominador; 
 
 }
-double LjingBox(double phi, int lag){
-    double pt1=0, pt2=0; 
-    pt1 = LINHAS*(LINHAS+2);
-    pt2 = pow(phi,2);
-    pt2 = pt2/(LINHAS-lag);
-    return pt1*pt2; 
+double LjingBox(double acf[12]){
+    double soma = 0.0;
+    for(int k = 1; k <= 12; k++){
+        soma += (acf[k-1] * acf[k-1]) / (LINHAS - k);
+    }
+    return LINHAS * (LINHAS + 2) * soma;
 }
 // calculo de matriz omega 
 void CalculoOmega(double matrizOmega[LINHAS][LINHAS], double rho, double destino[LINHAS][LINHAS]){
@@ -646,7 +690,7 @@ void MultplicadorMatrizQuadrada(double matriz1[COLUNAS][COLUNAS], double matriz2
     }
 }
 
-void MQGFunc(double rho_MQO, double Omega[LINHAS][LINHAS], double X[LINHAS][COLUNAS], double vetor_y[LINHAS], int maxIter, double tol){
+void MQGFunc(double rho_MQO, double Omega[LINHAS][LINHAS], double X[LINHAS][COLUNAS], double vetor_y[LINHAS], int maxIter, double tol, double BETAS[COLUNAS]){
     int i, j, k; 
 
     for(k=0; k< maxIter; k++){
@@ -702,18 +746,35 @@ void MQGFunc(double rho_MQO, double Omega[LINHAS][LINHAS], double X[LINHAS][COLU
         printf("\n");
         printf("betas:");
         FILE *saida, *nomes; 
-        saida = fopen("Saida_FGLS.txt", "w");
+        //saida = fopen("Saida_FGLS.txt", "w");
         nomes = fopen("nome_variaveis.txt", "rt");
         char features[50];
         for(i=0; i<COLUNAS; i++){
             printf("%lf", betas[i]);
             fscanf(nomes, "%s", features);
-            fprintf(saida, "%s: %lf\n", features, betas[i]); 
+            //fprintf(saida, "%s: %lf\n\n", features, betas[i]); 
+            BETAS[i] = betas[i];
             printf("\n");
         }
         break;
     }
-    rho_MQO = rho_new; 
+    rho_MQO = rho_new;  
 }
+
+}
+double F_statistic(double prev[LINHAS], double mediaReal, double vetor[LINHAS]){
+    // calculo de F 
+    int i; 
+    double SQM=0, QMM=0, SQE=0, QME=0; 
+    for(i=0; i<LINHAS; i++){
+        SQM += pow(prev[i]-mediaReal, 2);
+    }
+    QMM = SQM/COLUNAS; 
     
+    for(i=0; i<LINHAS; i++){
+        SQE += pow(vetor[i]-prev[i],2);
+    }
+    QME = SQE/(LINHAS - COLUNAS -1);
+    double F=0; 
+    return QMM/QME; 
 }

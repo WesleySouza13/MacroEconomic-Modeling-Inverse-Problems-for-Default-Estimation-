@@ -1,0 +1,28 @@
+const: -0.017306
+DeltaDesemprego: -0.255698
+SELIC: 0.027675
+DeltaIBC-Br: -0.586581
+IPCA: -0.011552
+DeltaEndividamento_das_familias: 0.753279
+
+rho: 0.065508, lag: 1
+rho: 0.068181, lag: 2
+rho: 0.288401, lag: 3
+rho: 0.016792, lag: 4
+rho: -0.059878, lag: 5
+rho: 0.382836, lag: 6
+rho: -0.114944, lag: 7
+rho: -0.109264, lag: 8
+rho: 0.111347, lag: 9
+rho: -0.101495, lag: 10
+rho: -0.093491, lag: 11
+rho: 0.399015, lag: 12
+
+(Q) Ljing-Box: 80.378460
+F_statistic: 40.905554
+
+Breusch-Pagan Test (p_value): 0.8276583423178544
+White Test (p_value): 0.928333784677938
+Ljung_Box (p_value): 3.6908292833163823e-07
+RQUADRADO: 0.222
+
