@@ -483,6 +483,16 @@ void main(){
     F_fgls = F_statistic(prev_FGLS, mediaprevFGLS, vetor); 
     fprintf(saidaFGLS, "\nF_statistic: %lf\n", F_fgls); 
     
+
+    // exportando matriz omega 
+    FILE *saida_omega; 
+    saida_omega = fopen("matriz_omega.txt", "w+"); 
+    for(i=0; i<LINHAS; i++){
+        for(j=0; j<LINHAS; j++){
+            fprintf(saida_omega, "%lf\n", Omega[i][j]);
+        }
+    }
+    fclose(saida_omega); 
 }
 //fim da main()
     
