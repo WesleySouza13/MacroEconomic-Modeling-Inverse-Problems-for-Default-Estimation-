@@ -26,3 +26,7 @@ White Test (p_value): 0.928333784677938
 Ljung_Box (p_value): 3.6908292833163823e-07
 RQUADRADO: 0.222
 
+Breusch-Pagan Test (p_value): 0.8276583423178544
+White Test (p_value): 0.928333784677938
+Ljung_Box (p_value): 3.6908292833163823e-07
+RQUADRADO: 0.222

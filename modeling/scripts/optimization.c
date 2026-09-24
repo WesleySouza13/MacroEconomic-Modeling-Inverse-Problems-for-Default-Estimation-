@@ -36,12 +36,12 @@ int main(){
     farei a transposiçao do vetor beta para 6x1 para uma matriz 1 x 6, para satisfazer a preposiçao b^t 
     -----------------------------------------------------------------
     */
-    y = -0.006666691358189203;  // alvo 
+    y = 0.4953393512227677;  // alvo 
     erro = 1; 
     tol = 0.00001; 
     alpha=0.0001; 
     int k=0, maxIter=10000000; 
-    double acc[100000]; // limtando pela nao convergencia em um vetor de 10mi de tamanho
+    double acc[100000]={0}; // limtando pela nao convergencia em um vetor de 10mi de tamanho
 while(fabs(erro)>tol){
     y_=0; 
     for(i=0; i<1; i++){
