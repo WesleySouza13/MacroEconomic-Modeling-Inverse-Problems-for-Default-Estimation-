@@ -11,13 +11,13 @@
 void MultiplicadorMatrizVetor(double matriz1[LINHAS][LINHAS],double vetor[COLUNAS],double resultado[COLUNAS]);
 void InverteOmega(double rho,double OmegaInv[1][1]);
 void Transpose(double matriz[1][COLUNAS], double matriz_destino[COLUNAS][1]);
-
+void InverteHx(double matriz[COLUNAS][COLUNAS], double inversa[COLUNAS][COLUNAS]); 
 int main(){
     int i, j; 
     // assumindo X como chutes iniciais 
-    double X[1][COLUNAS]={{1,0.0012157578675766612,1.12269006497541,0.0058070313939042,0.332757862491234,0.0024855445478073612}}, y=-0.006666691358189203, erro=0, beta[COLUNAS][1] = {-0.017306,-0.255698,0.027675,-0.586581,-0.011552,0.753279};
-    double y_ = 0; 
-
+    double X[1][COLUNAS]={{1,0.0012157578675766612,1.12269006497541,0.0058070313939042,0.332757862491234,0.0024855445478073612}}, y, erro,tol,alpha,  beta[COLUNAS][1] = {-0.017306,-0.255698,0.027675,-0.586581,-0.011552,0.753279};
+    double y_; 
+/*
     for(i=0; i<1; i++){
         for(j=0; j<COLUNAS; j++){
             y_ += X[0][j] * beta[j][i];
@@ -29,25 +29,37 @@ int main(){
     printf("\n"); 
     printf("erro: %lf", erro); 
     printf("\n"); 
-
+*/
 
     /* 
     ---------------------------------------------------------------
     farei a transposiçao do vetor beta para 6x1 para uma matriz 1 x 6, para satisfazer a preposiçao b^t 
     -----------------------------------------------------------------
     */
-    double betaT[1][COLUNAS];
-    for(i=0;i<1; i++){
+    y = -0.006666691358189203;  // alvo 
+    erro = 1; 
+    tol = 0.00001; 
+    alpha=0.0001; 
+    int k=0, maxIter=10000000; 
+    double acc[100000]; // limtando pela nao convergencia em um vetor de 10mi de tamanho
+while(fabs(erro)>tol){
+    y_=0; 
+    for(i=0; i<1; i++){
         for(j=0; j<COLUNAS; j++){
-            betaT[0][i] = 0; 
+            y_ += X[0][j] * beta[j][i];
         }
     }
-    printf("betaT:");
-    printf("\n"); 
+    erro = y - y_;
+    acc[k] = erro; 
+    printf("rodada %d: erro: %lf", k, erro); 
+    double betaT[1][COLUNAS];
+
+    for(j=0;j<COLUNAS;j++){
+    betaT[0][j]=beta[j][0];
+                    }
     for(i=0; i<COLUNAS; i++){
         for(j=0; j<1; j++){
             betaT[0][i] = beta[i][0]; 
-            printf("%lf\t", betaT[0][i]);
         }
     }
 
@@ -55,50 +67,51 @@ int main(){
     double OmegaInv[1][1]; 
     InverteOmega(0.065508, OmegaInv); 
 
-    for(i=0; i<1; i++){
-        for(j=0; j<1; j++){
-            printf("\t %lf", OmegaInv[i][j]); 
-        }printf("\n"); 
-    }
+    
     // multiplicando Omega por 2 
     double _OmegaInv[1][1]= {0}; 
     for(i=0;i<1; i++){
         for(j=0; j<1; j++){
             _OmegaInv[i][j] += 2 * OmegaInv[i][j]; 
         }
-    } printf("multiplicaçao por 2 de OmegaInv feita com sucesso!");
-
+    } 
     // 2*OmegaInv * erro
     double resultado1[1][1]={0}, derivada1[1][6]={0} ; 
 
-    resultado1[0][0] = _OmegaInv[0][0] * erro; 
-    printf("%lf", resultado1[0][0]); 
+    resultado1[0][0] = _OmegaInv[0][0] * erro;  
     
     // resultado1 * beta^t 
-    printf("\n"); 
-    printf("derivada primeira:");
         for(j=0; j<COLUNAS; j++){
             derivada1[0][j] = resultado1[0][0] *betaT[0][j];
-            printf("derivada1: %lf\t", derivada1[0][j]);
+
+        // gradiente Xn+1 = Xn + alpha*derivada1
+
+            X[0][j]=X[0][j]+alpha*derivada1[0][j];
         }
-        
-        /*
-        calculando segunda derivada para Heussiana: 2OmegaInv*Beta*Beta^t = Hx
-        */
-        double Hx[COLUNAS][COLUNAS] = {0};
-        printf("\nHessiana Hx:\n");
-    for(i = 0; i < COLUNAS; i++){
-        for(j = 0; j < COLUNAS; j++){
-            Hx[i][j] =_OmegaInv[0][0] *beta[i][0] * betaT[0][j];
-            printf("%lf\t", Hx[i][j]);
+        printf("Resultado final:\n");
+
+    for(j=0;j<COLUNAS;j++){
+        printf("X[%d]=%lf\n",j,X[0][j]);
     }
-    printf("\n");
+    
+
+    k++;
+    if(k>=maxIter){
+        printf("maximo de iteracoes atingido\n");
+    break;
 }
-
-
-
-
-
+    if(fabs(erro)<=tol){
+        printf("convergencia atendida\n");
+    break;
+}
+    }
+    FILE *saida; 
+    saida = fopen("errosOtimizacao.csv", "w+"); 
+    for(i=0; i<100000; i++){
+        fprintf(saida, "%lf\n", acc[i]);
+    }
+    fclose(saida); 
+    
 return 0;
 } 
 
